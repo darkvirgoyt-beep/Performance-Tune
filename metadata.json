@@ -1,0 +1,6 @@
+{
+  "name": "BGMI & Mobile Gaming Optimizer Suite",
+  "description": "Advanced mobile gaming performance and diagnostics suite for BGMI & FPS titles. Test network jitter, analyze desync and bullet registration, manage thermals safely, and generate safe Android tweaks.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

@@ -1,0 +1,3 @@
+#!/sbin/sh
+#MAGISK
+exec /data/adb/magisk/busybox ash "$0" "$@"

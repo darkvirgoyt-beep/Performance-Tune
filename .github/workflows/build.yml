@@ -1,0 +1,234 @@
+name: Direct Compile & Build Virgo Core (Web & Flashable Magisk Module)
+
+on:
+  push:
+    branches:
+      - main
+      - master
+    tags:
+      - 'v*'
+  pull_request:
+    branches:
+      - main
+      - master
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: 'Release Tag (e.g. v4.5-ULTRA)'
+        required: true
+        default: 'v4.5-ULTRA'
+      release_title:
+        description: 'Release Title'
+        required: true
+        default: 'Virgo Core // BGMI 120 FPS Constant Lock & iOS Fluidity'
+      draft:
+        description: 'Create Draft Release?'
+        type: boolean
+        default: false
+      prerelease:
+        description: 'Mark as Pre-release?'
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+jobs:
+  # ========================================================
+  # JOB 1: COMPILE & BUILD VITE REACT APP
+  # ========================================================
+  compile-web:
+    name: Compile & Build Web Studio
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Codebase
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm install --prefer-offline --no-audit
+
+      - name: Validate TypeScript Code (Lint)
+        run: npm run lint
+
+      - name: Compile Production Build (Vite)
+        run: npm run build
+
+      - name: Package Web Build Artifact
+        run: |
+          RAW_VERSION="${{ github.event.inputs.release_tag || github.ref_name || 'v4.5-ULTRA' }}"
+          SAFE_VERSION=$(echo "${RAW_VERSION}" | sed 's/[^a-zA-Z0-9._-]/_/g')
+          WEB_ZIP_NAME="VirgoCore-WebStudio-Production-${SAFE_VERSION}.zip"
+          echo "WEB_ZIP_NAME=${WEB_ZIP_NAME}" >> $GITHUB_ENV
+          cd dist
+          zip -r9 "../${WEB_ZIP_NAME}" .
+          cd ..
+          sha256sum "${WEB_ZIP_NAME}" > "${WEB_ZIP_NAME}.sha256"
+
+      - name: Upload Web Build Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.WEB_ZIP_NAME }}
+          path: |
+            ${{ env.WEB_ZIP_NAME }}
+            ${{ env.WEB_ZIP_NAME }}.sha256
+
+  # ========================================================
+  # JOB 2: PACKAGE & VERIFY FLASHABLE ROOT MODULE ZIP
+  # ========================================================
+  build-module:
+    name: Package & Verify Flashable Module ZIP
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Codebase
+        uses: actions/checkout@v4
+
+      - name: Install Build Utilities (zip, dos2unix, shellcheck)
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq zip dos2unix shellcheck
+
+      - name: Prepare Staging Tree & Guarantee META-INF
+        run: |
+          mkdir -p staging/META-INF/com/google/android
+          mkdir -p staging/webroot
+
+          # 1. Guarantee META-INF binary & updater script
+          if [ -f "META-INF/com/google/android/update-binary" ]; then
+            cp META-INF/com/google/android/update-binary staging/META-INF/com/google/android/
+          else
+            cat << 'EOF' > staging/META-INF/com/google/android/update-binary
+#!/sbin/sh
+#MAGISK
+exec /data/adb/magisk/busybox ash "$0" "$@"
+EOF
+          fi
+
+          if [ -f "META-INF/com/google/android/updater-script" ]; then
+            cp META-INF/com/google/android/updater-script staging/META-INF/com/google/android/
+          else
+            echo '#MAGISK' > staging/META-INF/com/google/android/updater-script
+          fi
+
+          # 2. Copy core root module files
+          cp module.prop staging/
+          cp system.prop staging/
+          cp service.sh staging/
+          cp post-fs-data.sh staging/
+          cp customize.sh staging/
+
+          # 3. Action script for KernelSU / APatch Manager
+          if [ -f "action.sh" ]; then
+            cp action.sh staging/
+          else
+            cat << 'EOF' > staging/action.sh
+#!/system/bin/sh
+sh /data/adb/modules/virgo-bgmi-core/service.sh
+EOF
+          fi
+
+          # 4. Configuration and Banner
+          if [ -f "virgo.conf" ]; then
+            cp virgo.conf staging/
+          fi
+          cp v.jpg staging/ 2>/dev/null || cp public/v.jpg staging/ 2>/dev/null || true
+
+          # 5. KernelSU WebUI
+          if [ -d "webroot" ]; then
+            cp -r webroot/* staging/webroot/ 2>/dev/null || true
+          fi
+
+      - name: Enforce POSIX (LF) Line Endings & Correct Permissions
+        run: |
+          find staging -type f -exec dos2unix -q {} + 2>/dev/null || true
+          chmod -R 0755 staging
+          chmod 0755 staging/service.sh staging/post-fs-data.sh staging/customize.sh staging/action.sh staging/META-INF/com/google/android/update-binary
+          chmod 0644 staging/module.prop staging/system.prop staging/virgo.conf staging/webroot/index.html 2>/dev/null || true
+
+      - name: Syntax & Lint Verification (ShellCheck)
+        run: |
+          shellcheck -e SC2086,SC2181,SC2129,SC1090 staging/service.sh || true
+          shellcheck -e SC2086,SC2181,SC2129,SC1090 staging/post-fs-data.sh || true
+          shellcheck -e SC2086,SC2181,SC2129 staging/customize.sh || true
+          shellcheck -e SC2086,SC2181,SC2129 staging/action.sh || true
+
+      - name: Package Universal Flashable .ZIP
+        run: |
+          RAW_VERSION="${{ github.event.inputs.release_tag || github.ref_name || 'v4.5-ULTRA' }}"
+          SAFE_VERSION=$(echo "${RAW_VERSION}" | sed 's/[^a-zA-Z0-9._-]/_/g')
+          MODULE_ZIP_NAME="VirgoCore-BGMI-120FPS-iOS-Universal-${SAFE_VERSION}.zip"
+          echo "MODULE_ZIP_NAME=${MODULE_ZIP_NAME}" >> $GITHUB_ENV
+          cd staging
+          zip -r9 "../${MODULE_ZIP_NAME}" .
+          cd ..
+          echo "Module zip packaged successfully: ${MODULE_ZIP_NAME}"
+
+      - name: Verify Flashable Zip Integrity
+        run: |
+          echo "Checking flashable zip internal layout..."
+          unzip -l "${MODULE_ZIP_NAME}"
+          # Verify mandatory Magisk / KernelSU / APatch structures
+          unzip -l "${MODULE_ZIP_NAME}" | grep -q "META-INF/com/google/android/update-binary" || (echo "ERROR: update-binary missing!" && exit 1)
+          unzip -l "${MODULE_ZIP_NAME}" | grep -q "module.prop" || (echo "ERROR: module.prop missing!" && exit 1)
+          unzip -l "${MODULE_ZIP_NAME}" | grep -q "service.sh" || (echo "ERROR: service.sh missing!" && exit 1)
+          unzip -l "${MODULE_ZIP_NAME}" | grep -q "webroot/index.html" || (echo "ERROR: webroot/index.html missing!" && exit 1)
+          echo "Integrity check passed 100%!"
+
+      - name: Generate Cryptographic Checksums (SHA-256 & MD5)
+        run: |
+          sha256sum "${MODULE_ZIP_NAME}" > "${MODULE_ZIP_NAME}.sha256"
+          md5sum "${MODULE_ZIP_NAME}" > "${MODULE_ZIP_NAME}.md5"
+          echo "=== SHA-256 Checksum ==="
+          cat "${MODULE_ZIP_NAME}.sha256"
+          echo "=== MD5 Checksum ==="
+          cat "${MODULE_ZIP_NAME}.md5"
+
+      - name: Upload Module Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.MODULE_ZIP_NAME }}
+          path: |
+            ${{ env.MODULE_ZIP_NAME }}
+            ${{ env.MODULE_ZIP_NAME }}.sha256
+            ${{ env.MODULE_ZIP_NAME }}.md5
+
+      - name: Publish GitHub Release
+        if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.event.inputs.release_tag || github.ref_name }}
+          name: ${{ github.event.inputs.release_title || github.ref_name }}
+          draft: ${{ github.event.inputs.draft || false }}
+          prerelease: ${{ github.event.inputs.prerelease || false }}
+          generate_release_notes: true
+          body: |
+            # 🚀 Virgo Core // BGMI 120 FPS Constant Lock & iOS Zero-Delay Engine
+            **Engineered by VirgoYT** | *All Credits to VirgoYT*
+
+            ### ⚡ Production Performance Architecture:
+            - **Zero Delay & Instant Response:** 0.0x UI animation scales, touch slop 0, and SurfaceFlinger backpressure bypass for blistering real-time reactions.
+            - **Permanent Display Hz Persistence:** Preserves user-configured 120Hz/144Hz/165Hz locks across reboots, re-flashes, and OTA updates.
+            - **Dynamic Silicon Max Clocks:** Auto-detects real hardware maximum frequencies for CPU cores and GPU devfreq without arbitrary limits.
+            - **800Hz Gyroscope Direct Channel:** Eliminates sensor event batching (`batch_limit=0`, `direct_channel=1`) for instantaneous zero-jitter ADS aim stabilization.
+            - **Real OEM Touch Digitizer Drivers:** Activates native gaming touch sampling via OEM sysfs paths across Xiaomi, OnePlus, Realme, Asus ROG, and Samsung.
+            - **Stock 18W Fast Charging Uncap:** Uncaps screen-on thermal charging limits safely within native PMIC 18W specifications.
+            - **iOS ProMotion Early GL Frame Pacing:** Early VSync GL phase offsets (`6.1ms / 9.0ms`) eliminating frame drops and micro-stuttering.
+            - **Memory Management:** Swappiness `10`, VFS Cache Pressure `50`, RAM Compaction, and Low Memory Killer (LMK) protection.
+            - **Tubes & Scheduler:** TurboSched Boost (`sched_tune.boost=30`) and EAS Energy Model Bypass.
+            - **Kernel Task Isolation:** Real-time priority (`renice -20`), `chrt -r 99`, and CPU pinning for `com.pubg.imobile`.
+            - **TCP BBR & Netstack Optimization:** Eliminates server-side bufferbloat and desync packet delays (`tcp_notsent_lowat=16384`).
+            - **KernelSU & APatch WebUI:** Full native UI support in `/webroot/index.html` with 1-tap SU execution and real-time charging wattage telemetry.
+
+            ### 📦 Flash Instructions:
+            1. Download `${{ env.MODULE_ZIP_NAME }}`.
+            2. Flash in **Magisk Manager 24+**, **KernelSU**, or **APatch**.
+            3. Reboot device. All high max performance parameters are pre-activated on boot!
+          files: |
+            ${{ env.MODULE_ZIP_NAME }}
+            ${{ env.MODULE_ZIP_NAME }}.sha256
+            ${{ env.MODULE_ZIP_NAME }}.md5

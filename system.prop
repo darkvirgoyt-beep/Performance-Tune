@@ -1,0 +1,66 @@
+# ========================================================
+# Virgo Core system.prop - Engineered by VirgoYT
+# All Credits to VirgoYT
+# Max Refresh Rate Constant Lock & Flagship Aim Stick
+# ========================================================
+
+# --- Maximum Refresh Rate Constant Lock (SurfaceFlinger) ---
+ro.vendor.display.default_fps=120
+persist.vendor.display.default_fps=120
+persist.sys.min_refresh_rate=120.0
+persist.sys.max_refresh_rate=120.0
+vendor.display.qdcm.disable_lut=1
+ro.surface_flinger.max_frame_buffer_acquired_buffers=3
+
+# --- Flagship Aim Stick & Ultra-Low Latency Digitizer (Zero Delay) ---
+debug.touch.sampling_rate=720
+touch.filter.level=0
+view.touch_slop=0
+touch.pressure.scale=0.001
+touch.size.calibration=geometric
+touch.pressure.calibration=amplitude
+persist.sys.touch.latency=minimal
+persist.sys.input_latency=0
+debug.sf.disable_backpressure=1
+persist.sys.scrolling.friction=0.006
+view.scroll_friction=0.006
+
+# --- Gyroscope High ODR (Output Data Rate) - Zero Jitter & Direct Channel ---
+persist.vendor.sensors.gyro.odr=800
+persist.vendor.sensors.gyro.batch_limit=0
+ro.vendor.sensors.gyro.odr=800
+persist.vendor.sensors.direct_channel=1
+vendor.sensor.gyro.delay=1250
+
+# --- iOS-Grade ProMotion Frame Pacing (Zero Micro-Stutter) ---
+debug.sf.high_fps_early_phase_offset_ns=6100000
+debug.sf.early_gl_phase_offset_ns=9000000
+debug.sf.early_phase_offset_ns=6100000
+debug.sf.high_fps_early_gl_phase_offset_ns=9000000
+debug.sf.latch_unsignaled=1
+renderthread.skia.reduceopstasksplitting=true
+debug.renderengine.backend=skiagl
+debug.hwui.renderer=skiagl
+persist.sys.composition.type=c2d
+debug.sf.enable_hwc_vds=1
+
+# --- Hardware Governors & GPU Preload ---
+ro.vendor.qti.core_ctl_min_cpu=4
+ro.vendor.qti.core_ctl_max_cpu=8
+persist.sys.cpu.governor=performance
+persist.sys.gpu.governor=performance
+persist.sys.gpu.max_clk=900
+ro.hardware.egl=adreno
+persist.sys.turbosched=1
+
+# --- Thermal Mitigation Alignment (High Max Performance) ---
+persist.sys.thermal.mitigation=0
+persist.vendor.thermal.config=/vendor/etc/thermal-engine-gaming.conf
+
+# --- Anti-Desync Network & Latency Tuning ---
+net.tcp.buffersize.default=4096,87380,16777216
+net.tcp.buffersize.wifi=4096,87380,16777216
+logcat.live=disable
+ro.logd.size=64K
+debug.atrace.tags.enableflags=0
+profiler.force_disable_ulog=1

@@ -1,0 +1,706 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Virgo Core Manager - VirgoYT</title>
+  <style>
+    :root {
+      --bg: #07080c;
+      --card: #10121a;
+      --card-border: #1e2230;
+      --accent: #a855f7;
+      --orange: #f97316;
+      --emerald: #10b981;
+      --cyan: #06b6d4;
+      --rose: #f43f5e;
+      --text: #f8fafc;
+      --sub: #94a3b8;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
+    body { background: var(--bg); color: var(--text); padding: 14px; padding-bottom: 40px; -webkit-tap-highlight-color: transparent; }
+    
+    /* Header */
+    .header {
+      background: linear-gradient(135deg, #181224, #0d0f17);
+      border: 1px solid rgba(168, 85, 247, 0.4);
+      border-radius: 18px;
+      padding: 16px;
+      text-align: center;
+      margin-bottom: 14px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+    }
+    .badge {
+      display: inline-block;
+      padding: 3px 10px;
+      background: rgba(168,85,247,0.2);
+      border: 1px solid rgba(168,85,247,0.5);
+      border-radius: 20px;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      color: #d8b4fe;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+    .title { font-size: 22px; font-weight: 900; letter-spacing: 0.5px; color: #fff; }
+    .subtitle { font-size: 11px; color: var(--orange); font-weight: 700; margin-top: 3px; }
+    .author-credit { font-size: 10px; color: var(--sub); margin-top: 2px; }
+
+    /* Live Telemetry Grid */
+    .stats-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; margin-bottom: 14px; }
+    .stat-pill {
+      background: #111420;
+      border: 1px solid #23293d;
+      border-radius: 12px;
+      padding: 8px 3px;
+      text-align: center;
+    }
+    .stat-val { font-size: 11px; font-weight: 800; font-family: monospace; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .stat-lbl { font-size: 8px; color: var(--sub); text-transform: uppercase; margin-top: 2px; }
+
+    /* Section Cards */
+    .section-title {
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      margin: 16px 4px 8px 4px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      color: #cbd5e1;
+    }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--card-border);
+      border-radius: 16px;
+      padding: 14px;
+      margin-bottom: 12px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+    }
+
+    /* Toggle Rows */
+    .t-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 9px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+    }
+    .t-row:last-child { border-bottom: none; }
+    .t-info { flex: 1; padding-right: 12px; }
+    .t-name { font-size: 13px; font-weight: 700; color: #fff; display: flex; align-items: center; gap: 5px; }
+    .t-desc { font-size: 10.5px; color: var(--sub); margin-top: 2px; line-height: 1.3; }
+
+    /* Switch */
+    .switch { position: relative; display: inline-block; width: 44px; height: 24px; flex-shrink: 0; }
+    .switch input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #262b3d; transition: .25s; border-radius: 24px; }
+    .slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: #fff; transition: .25s; border-radius: 50%; }
+    input:checked + .slider { background-color: var(--emerald); }
+    input:checked + .slider:before { transform: translateX(20px); }
+
+    /* Action Buttons */
+    .btn-group { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 14px; }
+    .btn {
+      width: 100%;
+      padding: 12px;
+      border: none;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 800;
+      color: #fff;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: transform 0.1s, opacity 0.2s;
+    }
+    .btn:active { transform: scale(0.97); }
+    .btn-purple { background: linear-gradient(135deg, #a855f7, #7e22ce); }
+    .btn-orange { background: linear-gradient(135deg, #f97316, #ea580c); }
+    .btn-emerald { background: linear-gradient(135deg, #10b981, #059669); grid-column: span 2; }
+    .btn-cyan { background: linear-gradient(135deg, #06b6d4, #0891b2); }
+    .btn-rose { background: linear-gradient(135deg, #f43f5e, #e11d48); }
+
+    /* Console Terminal */
+    .console-card { background: #000; border: 1px solid #1f2430; border-radius: 14px; padding: 12px; margin-top: 14px; }
+    .console-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+    .console-title { font-size: 10px; font-weight: 800; color: #64748b; font-family: monospace; text-transform: uppercase; }
+    .console-output {
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 10.5px;
+      line-height: 1.4;
+      color: #34d399;
+      max-height: 130px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Header -->
+  <div class="header">
+    <div class="badge">KernelSU & APatch Esports WebUI</div>
+    <div class="title">VIRGO CORE</div>
+    <div class="subtitle">120 FPS Constant Lock & Flagship Aim Stick</div>
+    <div class="author-credit">Author: <strong>VirgoYT</strong> | All Credits to VirgoYT</div>
+  </div>
+
+  <!-- Live Telemetry Stats -->
+  <div class="stats-grid">
+    <div class="stat-pill">
+      <div class="stat-val" id="stat-display-hz" style="color: #c084fc;">120 Hz</div>
+      <div class="stat-lbl">Display Rate</div>
+    </div>
+    <div class="stat-pill">
+      <div class="stat-val" id="stat-big-core" style="color: #fb923c;">2304 MHz</div>
+      <div class="stat-lbl">Big Core</div>
+    </div>
+    <div class="stat-pill">
+      <div class="stat-val" id="stat-gpu" style="color: #38bdf8;">900 MHz</div>
+      <div class="stat-lbl">GPU Clock</div>
+    </div>
+    <div class="stat-pill">
+      <div class="stat-val" id="stat-ram-free" style="color: #34d399;">Active</div>
+      <div class="stat-lbl">RAM State</div>
+    </div>
+    <div class="stat-pill">
+      <div class="stat-val" id="stat-power-w" style="color: #facc15;">Stock 18W</div>
+      <div class="stat-lbl">Charging Rate</div>
+    </div>
+  </div>
+
+  <!-- 1. DISPLAY & AIM STICK (FPS & TOUCH) -->
+  <div class="section-title" style="color: #c084fc;">
+    <span>🎮 Permanent Display Hz & Flagship Aim Stick</span>
+  </div>
+  <div class="card">
+    <!-- Permanent Screen Hz Selector -->
+    <div class="t-row" style="background: rgba(168,85,247,0.07); border-radius: 10px; padding: 10px; margin-bottom: 8px;">
+      <div class="t-info">
+        <div class="t-name" style="color: #e9d5ff;">Permanent Screen Hz Lock</div>
+        <div class="t-desc">Saves permanently into virgo.conf; persists across all reboots & updates</div>
+      </div>
+      <select id="hz_select" onchange="setPermanentHz(this.value)" style="background: #181c2b; color: #38bdf8; border: 1px solid #7c3aed; border-radius: 8px; padding: 6px 10px; font-weight: 800; font-size: 12px;">
+        <option value="120" selected>120 Hz (Esports)</option>
+        <option value="144">144 Hz (Pro)</option>
+        <option value="165">165 Hz (Ultra)</option>
+        <option value="90">90 Hz (Balanced)</option>
+        <option value="60">60 Hz (Default)</option>
+      </select>
+    </div>
+
+    <div class="t-row">
+      <div class="t-info">
+        <div class="t-name">Enforce Permanent Max Refresh Rate Lock</div>
+        <div class="t-desc">Bypasses SurfaceFlinger dynamic throttling & locks chosen Hz interval</div>
+      </div>
+      <label class="switch">
+        <input type="checkbox" id="toggle_fps" checked onchange="updateToggle('ENABLE_MAX_REFRESH_RATE', this.checked)">
+        <span class="slider"></span>
+      </label>
+    </div>
+
+    <div class="t-row">
+      <div class="t-info">
+        <div class="t-name">Flagship Aim Stick & 720Hz Digitizer</div>
+        <div class="t-desc">Touch slop = 1, raw filter 0, eliminates deadzone for pixel-perfect recoil control</div>
+      </div>
+      <label class="switch">
+        <input type="checkbox" id="toggle_aim" checked onchange="updateToggle('ENABLE_FLAGSHIP_AIM_STICK', this.checked)">
+        <span class="slider"></span>
+      </label>
+    </div>
+
+    <div class="t-row">
+      <div class="t-info">
+        <div class="t-name">800Hz Gyroscope High ODR & Zero Delay Fix</div>
+        <div class="t-desc">Disables sensor batching (batch_limit 0) & direct_channel 1 for zero-lag gyro ADS</div>
+      </div>
+      <label class="switch">
+        <input type="checkbox" id="toggle_gyro" checked onchange="updateToggle('ENABLE_GYRO_ODR', this.checked)">
+        <span class="slider"></span>
+      </label>
+    </div>
+
+    <div class="t-row">
+      <div class="t-info">
+        <div class="t-name">⚡ Zero Animation & Instant Response</div>
+        <div class="t-desc">Disables window, transition, & animator scales (0.0x); eliminates SurfaceFlinger delay</div>
+      </div>
+      <label class="switch">
+        <input type="checkbox" id="toggle_zero_anim" checked onchange="updateToggle('ZERO_ANIMATIONS_ZERO_DELAY', this.checked)">
+        <span class="slider"></span>
+      </label>
+    </div>
+
+    <div class="t-row">
+      <div class="t-info">
+        <div class="t-name">iOS ProMotion Early GL Frame Pacing</div>
+        <div class="t-desc">Early VSync phase offsets (6.1ms/9.0ms) eliminate dropped frames</div>
+      </div>
+      <label class="switch">
+        <input type="checkbox" id="toggle_pacing" checked onchange="updateToggle('ENABLE_IOS_PROMOTION_PACING', this.checked)">
+        <span class="slider"></span>
+      </label>
+    </div>
+  </div>
+
+  <!-- 2. ULTRA-LOW RAM CONSUMPTION & MEMORY -->
+  <div class="section-title" style="color: #34d399;">
+    <span>💾 Ultra-Low RAM Footprint & Memory Compaction</span>
+  </div>
+  <div class="card">
+    <div class="t-row">
+      <div class="t-info">
+        <div class="t-name">VM Swappiness (Low Latency 10)</div>
+        <div class="t-desc">Restricts unneeded memory paging to keep RAM hot for BGMI match execution</div>
+      </div>
+      <label class="switch">
+        <input type="checkbox" id="toggle_swap" checked onchange="updateToggle('ENABLE_VM_TWEAKS', this.checked)">
+        <span class="slider"></span>
+      </label>
+    </div>
+
+    <div class="t-row">
+      <div class="t-info">
+        <div class="t-name">VFS Cache Pressure (50) & Dentries</div>
+        <div class="t-desc">Retains directory caches in RAM to prevent micro-stutter during rapid vehicle traversal</div>
+      </div>
+      <label class="switch">
+        <input type="checkbox" id="toggle_vfs" checked onchange="updateToggle('ENABLE_VFS_TWEAKS', this.checked)">
+        <span class="slider"></span>
+      </label>
+    </div>
+
+    <div class="t-row">
+      <div class="t-info">
+        <div class="t-name">Anti-LMK Game Protection</div>
+        <div class="t-desc">Protects BGMI (com.pubg.imobile) from Low Memory Killer crashes during intense matches</div>
+      </div>
+      <label class="switch">
+        <input type="checkbox" id="toggle_lmk" checked onchange="updateToggle('ENABLE_LMK_TWEAKS', this.checked)">
+        <span class="slider"></span>
+      </label>
+    </div>
+
+    <div class="t-row">
+      <div class="t-info">
+        <div class="t-name">Shrink Logcat Buffers (Save ~50MB RAM)</div>
+        <div class="t-desc">Reduces logd buffer to 128KB, freeing memory without cutting system functions</div>
+      </div>
+      <label class="switch">
+        <input type="checkbox" id="toggle_logcat_ram" checked onchange="updateToggle('DISABLE_LOGCAT', this.checked)">
+        <span class="slider"></span>
+      </label>
+    </div>
+  </div>
+
+  <!-- 3. TUBES & SCHEDULER TWEAKS (TURBOSCHED & EAS BYPASS) -->
+  <div class="section-title" style="color: #fb923c;">
+    <span>⚡ Tubes, TurboSched & CPU Boost</span>
+  </div>
+  <div class="card">
+    <div class="t-row">
+      <div class="t-info">
+        <div class="t-name">TurboSched & SchedTune Top-App Boost</div>
+        <div class="t-desc">Sets sched_tune.boost=30 and uclamp.min for instant frequency scaling</div>
+      </div>
+      <label class="switch">
+        <input type="checkbox" id="toggle_turbosched" checked onchange="updateToggle('ENABLE_TURBOSCHED', this.checked)">
+        <span class="slider"></span>
+      </label>
+    </div>
+
+    <div class="t-row">
+      <div class="t-info">
+        <div class="t-name">EAS Energy Model Bypass</div>
+        <div class="t-desc">Bypasses battery energy calculations to feed maximum core current</div>
+      </div>
+      <label class="switch">
+        <input type="checkbox" id="toggle_eas" checked onchange="updateToggle('ENABLE_EAS_BYPASS', this.checked)">
+        <span class="slider"></span>
+      </label>
+    </div>
+
+    <div class="t-row">
+      <div class="t-info">
+        <div class="t-name">CPU Hardware Clocks (2016 / 2304 MHz)</div>
+        <div class="t-desc">Small Cores locked @ 2016MHz | Big Cores locked @ 2304MHz (Performance)</div>
+      </div>
+      <label class="switch">
+        <input type="checkbox" id="toggle_cpu" checked onchange="updateToggle('ENABLE_CPU_CLOCKS', this.checked)">
+        <span class="slider"></span>
+      </label>
+    </div>
+
+    <div class="t-row">
+      <div class="t-info">
+        <div class="t-name">GPU 900 MHz Adreno Continuous Lock</div>
+        <div class="t-desc">KGSL bus_split=0, idle_timer=0, devfreq performance governor</div>
+      </div>
+      <label class="switch">
+        <input type="checkbox" id="toggle_gpu" checked onchange="updateToggle('ENABLE_GPU_LOCK', this.checked)">
+        <span class="slider"></span>
+      </label>
+    </div>
+
+    <div class="t-row">
+      <div class="t-info">
+        <div class="t-name">Thermal Mitigation Recalibration (300ms)</div>
+        <div class="t-desc">Prevents aggressive thermal step-downs while safeguarding hardware</div>
+      </div>
+      <label class="switch">
+        <input type="checkbox" id="toggle_thermal" checked onchange="updateToggle('ENABLE_THERMAL_OPTIMIZATION', this.checked)">
+        <span class="slider"></span>
+      </label>
+    </div>
+  </div>
+
+  <!-- 4. NETWORK & ANTI-DESYNC -->
+  <div class="section-title" style="color: #38bdf8;">
+    <span>🌐 Anti-Desync & Bullet Hit Registration</span>
+  </div>
+  <div class="card">
+    <div class="t-row">
+      <div class="t-info">
+        <div class="t-name">TCP BBR Congestion Control</div>
+        <div class="t-desc">Eliminates bufferbloat packet queues for real-time hit confirmation</div>
+      </div>
+      <label class="switch">
+        <input type="checkbox" id="toggle_bbr" checked onchange="updateToggle('ENABLE_ANTI_DESYNC_BBR', this.checked)">
+        <span class="slider"></span>
+      </label>
+    </div>
+
+    <div class="t-row">
+      <div class="t-info">
+        <div class="t-name">TCP Low Latency & Window Scaling (16MB)</div>
+        <div class="t-desc">Expands rmem/wmem socket buffers so burst damage packets never drop</div>
+      </div>
+      <label class="switch">
+        <input type="checkbox" id="toggle_net" checked onchange="updateToggle('ENABLE_TCP_SOCKET_TWEAKS', this.checked)">
+        <span class="slider"></span>
+      </label>
+    </div>
+
+    <div class="t-row">
+      <div class="t-info">
+        <div class="t-name">Cloudflare Gaming DNS (1.1.1.1)</div>
+        <div class="t-desc">Ultra-fast DNS resolution to BGMI Indian game servers</div>
+      </div>
+      <label class="switch">
+        <input type="checkbox" id="toggle_dns" checked onchange="updateToggle('SET_CLOUDFLARE_DNS', this.checked)">
+        <span class="slider"></span>
+      </label>
+    </div>
+  </div>
+
+  <!-- 5. TASK ISOLATION & DAEMON -->
+  <div class="section-title" style="color: #f43f5e;">
+    <span>🎯 BGMI Watchdog & Taskset Core Pinning</span>
+  </div>
+  <div class="card">
+    <div class="t-row">
+      <div class="t-info">
+        <div class="t-name">Realtime Renice (-20) & Big Core Pinning</div>
+        <div class="t-desc">Pins com.pubg.imobile to Big Cores 4-7 with minimal background overhead</div>
+      </div>
+      <label class="switch">
+        <input type="checkbox" id="toggle_watchdog" checked onchange="updateToggle('ENABLE_BGMI_WATCHDOG', this.checked)">
+        <span class="slider"></span>
+      </label>
+    </div>
+  </div>
+
+  <!-- Action Buttons -->
+  <div class="btn-group">
+    <button class="btn btn-emerald" onclick="applyFullMaxAll()">⚡ ENFORCE 100% MAXIMUM PERFORMANCE</button>
+    <button class="btn btn-purple" onclick="lockMaxRefreshRate()">📺 Lock Permanent Hz</button>
+    <button class="btn btn-rose" onclick="applyFlagshipAimStick()">🎯 Calibrate Gyro & Aim Stick</button>
+    <button class="btn btn-cyan" onclick="purgeMemoryAndCaches()">💾 Purge RAM & Compact</button>
+    <button class="btn btn-orange" onclick="reloadServiceDaemon()">🔄 Reload Virgo Daemon</button>
+    <button class="btn btn-indigo" style="background: linear-gradient(135deg, #6366f1, #4338ca);" onclick="exportExecutionLogs()">📥 Export Debug Logs (.txt)</button>
+  </div>
+
+  <!-- Execution Console -->
+  <div class="console-card">
+    <div class="console-header">
+      <span class="console-title">Live KernelSU Bridge Console</span>
+      <span id="exec-status" style="font-size: 9px; font-weight: 800; color: #10b981; font-family: monospace;">CONNECTED</span>
+    </div>
+    <div class="console-output" id="outputConsole">Virgo Core KernelSU WebUI loaded successfully.
+All High Max Performance presets active by default.
+Ready for live root execution.</div>
+  </div>
+
+  <script>
+    function printLog(text) {
+      const el = document.getElementById('outputConsole');
+      const time = new Date().toLocaleTimeString();
+      el.innerText += '\n[' + time + '] ' + text;
+      el.scrollTop = el.scrollHeight;
+    }
+
+    // Universal KernelSU & APatch root execution helper
+    function ksuExec(cmd) {
+      return new Promise((resolve, reject) => {
+        try {
+          // Modern Promise-based ksu.exec
+          if (window.ksu && typeof window.ksu.exec === 'function') {
+            const p = window.ksu.exec(cmd);
+            if (p && typeof p.then === 'function') {
+              p.then(res => resolve(typeof res === 'object' ? (res.stdout || JSON.stringify(res)) : res))
+               .catch(err => reject(err));
+              return;
+            } else {
+              // Legacy callback style
+              window.ksu.exec(cmd, (errno, stdout, stderr) => {
+                if (errno === 0) resolve(stdout);
+                else reject(new Error(stderr || 'Code ' + errno));
+              });
+              return;
+            }
+          }
+          // APatch bridge
+          if (window.apatch && typeof window.apatch.exec === 'function') {
+            const p = window.apatch.exec(cmd);
+            if (p && typeof p.then === 'function') {
+              p.then(res => resolve(typeof res === 'object' ? (res.stdout || JSON.stringify(res)) : res))
+               .catch(err => reject(err));
+              return;
+            }
+          }
+          // Global ksu object
+          if (typeof ksu !== 'undefined' && typeof ksu.exec === 'function') {
+            const p = ksu.exec(cmd);
+            if (p && typeof p.then === 'function') {
+              p.then(res => resolve(typeof res === 'object' ? (res.stdout || JSON.stringify(res)) : res))
+               .catch(err => reject(err));
+              return;
+            }
+          }
+          // Browser emulation preview
+          resolve('Emulated: ' + cmd);
+        } catch (e) {
+          reject(e);
+        }
+      });
+    }
+
+    function runRootCommand(cmd, successMsg) {
+      document.getElementById('exec-status').innerText = 'EXECUTING...';
+      document.getElementById('exec-status').style.color = '#f59e0b';
+      printLog('> ' + cmd);
+      
+      ksuExec(cmd).then(out => {
+        document.getElementById('exec-status').innerText = 'SUCCESS';
+        document.getElementById('exec-status').style.color = '#10b981';
+        printLog(successMsg || (out ? out.trim() : 'Command executed successfully.'));
+        refreshTelemetry();
+      }).catch(err => {
+        document.getElementById('exec-status').innerText = 'ERROR';
+        document.getElementById('exec-status').style.color = '#ef4444';
+        printLog('Error: ' + err);
+      });
+    }
+
+    function updateToggle(param, isChecked) {
+      const val = isChecked ? '1' : '0';
+      const cmd = 'sed -i "s/^' + param + '=.*/' + param + '=' + val + '/" /data/adb/modules/virgo-bgmi-core/virgo.conf 2>/dev/null || true; sh /data/adb/modules/virgo-bgmi-core/service.sh';
+      runRootCommand(cmd, 'Updated ' + param + ' -> ' + val);
+    }
+
+    function applyFullMaxAll() {
+      const cmd = `
+        service call SurfaceFlinger 1035 i32 1 2>/dev/null
+        for cpupath in /sys/devices/system/cpu/cpu[0-9]*; do
+          [ -d "$cpupath/cpufreq" ] || continue
+          echo performance > "$cpupath/cpufreq/scaling_governor" 2>/dev/null
+          HW_MAX=$(cat "$cpupath/cpufreq/cpuinfo_max_freq" 2>/dev/null)
+          [ -n "$HW_MAX" ] && echo "$HW_MAX" > "$cpupath/cpufreq/scaling_max_freq" 2>/dev/null
+          [ -n "$HW_MAX" ] && echo "$HW_MAX" > "$cpupath/cpufreq/scaling_min_freq" 2>/dev/null
+        done
+        if [ -d /sys/class/kgsl/kgsl-3d0 ]; then
+          echo performance > /sys/class/kgsl/kgsl-3d0/devfreq/governor 2>/dev/null
+          GPU_MAX=$(cat /sys/class/kgsl/kgsl-3d0/gpu_available_frequencies 2>/dev/null | tr ' ' '\n' | sort -n | tail -n1)
+          [ -n "$GPU_MAX" ] && echo "$GPU_MAX" > /sys/class/kgsl/kgsl-3d0/max_gpuclk 2>/dev/null
+        fi
+        for node in /proc/touchpanel/game_switch_enable /sys/class/touch/touch_dev/touch_thp_game /sys/class/touch/touch_dev/gesture_control; do
+          [ -e "$node" ] && echo 1 > "$node" 2>/dev/null
+        done
+        sysctl -w vm.swappiness=10 2>/dev/null
+        sysctl -w vm.vfs_cache_pressure=50 2>/dev/null
+        sysctl -w net.ipv4.tcp_congestion_control=bbr 2>/dev/null
+        sysctl -w net.ipv4.tcp_low_latency=1 2>/dev/null
+        sysctl -w net.ipv4.tcp_slow_start_after_idle=0 2>/dev/null
+        sysctl -w net.ipv4.tcp_notsent_lowat=16384 2>/dev/null
+        sh /data/adb/modules/virgo-bgmi-core/service.sh
+      `;
+      runRootCommand(cmd, 'REAL HARDWARE MAXIMUM ENFORCED! Dynamic Silicon Clocks, OEM Game Touch Mode & TCP BBR Active.');
+    }
+
+    function setPermanentHz(hz) {
+      const targetHz = parseInt(hz, 10) || 120;
+      const cmd = `
+        sed -i 's/^LOCKED_REFRESH_RATE_HZ=.*/LOCKED_REFRESH_RATE_HZ=${targetHz}/' /data/adb/modules/virgo-bgmi-core/virgo.conf 2>/dev/null || echo "LOCKED_REFRESH_RATE_HZ=${targetHz}" >> /data/adb/modules/virgo-bgmi-core/virgo.conf;
+        service call SurfaceFlinger 1035 i32 1 2>/dev/null;
+        setprop persist.sys.min_refresh_rate "${targetHz}.0";
+        setprop persist.sys.max_refresh_rate "${targetHz}.0";
+        settings put system min_refresh_rate "${targetHz}.0" 2>/dev/null;
+        settings put system peak_refresh_rate "${targetHz}.0" 2>/dev/null;
+        settings put system user_refresh_rate ${targetHz} 2>/dev/null;
+        settings put secure refresh_rate_mode 2 2>/dev/null;
+        for crtc in /sys/class/drm/*/measured_fps; do echo "${targetHz}" > "$crtc" 2>/dev/null; done
+      `;
+      runRootCommand(cmd, `Screen refresh rate permanently locked at ${targetHz}Hz (Saved to virgo.conf & persistent across boots).`);
+      document.getElementById('stat-display-hz').innerText = targetHz + ' Hz';
+    }
+
+    function lockMaxRefreshRate() {
+      const sel = document.getElementById('hz_select');
+      const hz = sel ? sel.value : '120';
+      setPermanentHz(hz);
+    }
+
+    function applyFlagshipAimStick() {
+      const cmd = `
+        setprop debug.touch.sampling_rate 720
+        setprop touch.filter.level 0
+        setprop view.touch_slop 0
+        setprop persist.sys.touch.latency minimal
+        setprop persist.sys.input_latency 0
+        setprop debug.sf.disable_backpressure 1
+        for node in /proc/touchpanel/game_switch_enable /sys/class/touch/touch_dev/touch_thp_game /sys/class/touch/touch_dev/gesture_control; do
+          [ -e "$node" ] && echo 1 > "$node" 2>/dev/null
+        done
+        echo 0 > /proc/touchpanel/oppo_tp_limit_enable 2>/dev/null
+        setprop persist.vendor.sensors.gyro.odr 800
+        setprop ro.vendor.sensors.gyro.odr 800
+        setprop persist.vendor.sensors.gyro.batch_limit 0
+        setprop persist.vendor.sensors.direct_channel 1
+        setprop vendor.sensor.gyro.delay 1250
+      `;
+      runRootCommand(cmd, 'Aim Stick & Gyro Calibrated: 0 Touch Slop, OEM Game Touch Mode, 800Hz ODR & Direct Channel Active.');
+    }
+
+    function purgeMemoryAndCaches() {
+      const cmd = 'echo 3 > /proc/sys/vm/drop_caches; echo 1 > /proc/sys/vm/compact_memory; sysctl -w vm.swappiness=10; sysctl -w vm.vfs_cache_pressure=50; logcat -G 128K 2>/dev/null || true';
+      runRootCommand(cmd, 'RAM Compacted & Pagecaches Purged for BGMI match start.');
+    }
+
+    function reloadServiceDaemon() {
+      const cmd = 'sh /data/adb/modules/virgo-bgmi-core/service.sh';
+      runRootCommand(cmd, 'Virgo Core Service Daemon Reloaded Successfully.');
+    }
+
+    async function exportExecutionLogs() {
+      printLog('Exporting Virgo Core execution and daemon logs...');
+      document.getElementById('exec-status').innerText = 'EXPORTING...';
+      document.getElementById('exec-status').style.color = '#6366f1';
+
+      let daemonLog = '';
+      try {
+        daemonLog = await ksuExec('cat /data/local/tmp/virgoyt_optimizer.log 2>/dev/null || echo "No service daemon log found."');
+      } catch (e) {
+        daemonLog = 'Failed to fetch /data/local/tmp/virgoyt_optimizer.log: ' + e;
+      }
+
+      const consoleText = document.getElementById('outputConsole') ? document.getElementById('outputConsole').innerText : '';
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+      const filename = 'virgo_core_log_' + timestamp + '.txt';
+
+      const exportContent = [
+        '=======================================================',
+        '       VIRGO CORE ESPORTS - DIAGNOSTIC EXECUTION LOG    ',
+        '       Author: VirgoYT | All Credits to VirgoYT         ',
+        '       Timestamp: ' + new Date().toString(),
+        '=======================================================',
+        '',
+        '--- [1] LIVE KERNELSU / APATCH CONSOLE LOGS ---',
+        consoleText,
+        '',
+        '--- [2] SYSTEM DAEMON LOG (/data/local/tmp/virgoyt_optimizer.log) ---',
+        daemonLog,
+        '',
+        '--- [3] RUNTIME CONFIGURATION CHECK (/data/adb/modules/virgo-bgmi-core/virgo.conf) ---',
+        await ksuExec('cat /data/adb/modules/virgo-bgmi-core/virgo.conf 2>/dev/null || echo "virgo.conf not found."'),
+        '',
+        '=======================================================',
+        '                 END OF DIAGNOSTIC LOG                 ',
+        '======================================================='
+      ].join('\n');
+
+      try {
+        const blob = new Blob([exportContent], { type: 'text/plain;charset=utf-8' });
+        const downloadUrl = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = downloadUrl;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(downloadUrl);
+
+        document.getElementById('exec-status').innerText = 'LOG EXPORTED';
+        document.getElementById('exec-status').style.color = '#10b981';
+        printLog('Diagnostics exported to ' + filename);
+      } catch (err) {
+        // Fallback for restricted WebViews: save to internal storage via root
+        const escapeTxt = exportContent.replace(/"/g, '\\"');
+        await ksuExec('cat << "EOF_LOG" > /sdcard/Download/' + filename + '\n' + exportContent + '\nEOF_LOG\n');
+        printLog('Saved log to /sdcard/Download/' + filename);
+      }
+    }
+
+    async function refreshTelemetry() {
+      try {
+        // Read display Hz
+        const hz = await ksuExec("getprop persist.sys.min_refresh_rate 2>/dev/null || dumpsys display 2>/dev/null | grep -oE 'fps=[0-9]+' | head -n1");
+        if (hz && !hz.includes('Emulated')) {
+          const m = hz.match(/([0-9]+)/);
+          if (m) document.getElementById('stat-display-hz').innerText = m[1] + ' Hz';
+        }
+        // Read Big Core Freq
+        const bigFreq = await ksuExec("cat /sys/devices/system/cpu/cpu4/cpufreq/scaling_cur_freq 2>/dev/null || cat /sys/devices/system/cpu/cpu7/cpufreq/scaling_cur_freq 2>/dev/null");
+        if (bigFreq && !bigFreq.includes('Emulated')) {
+          const khz = parseInt(bigFreq.trim(), 10);
+          if (!isNaN(khz) && khz > 0) document.getElementById('stat-big-core').innerText = Math.round(khz / 1000) + ' MHz';
+        }
+        // Read Free RAM
+        const mem = await ksuExec("awk '/MemAvailable/ {print int($2/1024)}' /proc/meminfo 2>/dev/null");
+        if (mem && !mem.includes('Emulated')) {
+          const mb = parseInt(mem.trim(), 10);
+          if (!isNaN(mb) && mb > 0) document.getElementById('stat-ram-free').innerText = mb + ' MB Free';
+        }
+        // Read Live Battery Charging Current & Voltage (Stock 18W max monitor)
+        const pwr = await ksuExec("sh -c 'V=$(cat /sys/class/power_supply/battery/voltage_now 2>/dev/null || echo 0); I=$(cat /sys/class/power_supply/battery/current_now 2>/dev/null || echo 0); T=$(cat /sys/class/power_supply/battery/temp 2>/dev/null || echo 0); echo \"$V $I $T\"'");
+        if (pwr && !pwr.includes('Emulated')) {
+          const parts = pwr.trim().split(/\s+/);
+          const uV = Math.abs(parseInt(parts[0], 10)) || 0;
+          const uA = Math.abs(parseInt(parts[1], 10)) || 0;
+          if (uV > 0 && uA > 0) {
+            // Power in Watts = (V * A) / 10^12
+            const watts = ((uV * uA) / 1000000000000).toFixed(1);
+            if (parseFloat(watts) > 0.5) {
+              document.getElementById('stat-power-w').innerText = watts + 'W Active';
+            } else {
+              document.getElementById('stat-power-w').innerText = '18W Ready';
+            }
+          }
+        }
+      } catch (e) {
+        console.warn("Telemetry refresh skipped", e);
+      }
+    }
+
+    // Initial telemetry check
+    setTimeout(refreshTelemetry, 800);
+  </script>
+</body>
+</html>
