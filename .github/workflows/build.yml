@@ -1,4 +1,4 @@
-name: Direct Compile & Build Virgo Core (Web & Flashable Magisk Module)
+name: Build Virgo Core KernelSU WebUI Module
 
 on:
   push:
@@ -35,54 +35,14 @@ permissions:
 
 jobs:
   # ========================================================
-  # JOB 1: COMPILE & BUILD VITE REACT APP
+  # JOB: PACKAGE & VERIFY KERNELSU WEBUI MODULE ZIP
+  # The repository is shipped as a root module. The React source is not part
+  # of the flashable artifact and is intentionally not built in this workflow.
   # ========================================================
-  compile-web:
-    name: Compile & Build Web Studio
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout Codebase
-        uses: actions/checkout@v4
 
-      - name: Set up Node.js 20
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: 'npm'
-
-      - name: Install Dependencies
-        run: npm install --prefer-offline --no-audit
-
-      - name: Validate TypeScript Code (Lint)
-        run: npm run lint
-
-      - name: Compile Production Build (Vite)
-        run: npm run build
-
-      - name: Package Web Build Artifact
-        run: |
-          RAW_VERSION="${{ github.event.inputs.release_tag || github.ref_name || 'v4.5-ULTRA' }}"
-          SAFE_VERSION=$(echo "${RAW_VERSION}" | sed 's/[^a-zA-Z0-9._-]/_/g')
-          WEB_ZIP_NAME="VirgoCore-WebStudio-Production-${SAFE_VERSION}.zip"
-          echo "WEB_ZIP_NAME=${WEB_ZIP_NAME}" >> $GITHUB_ENV
-          cd dist
-          zip -r9 "../${WEB_ZIP_NAME}" .
-          cd ..
-          sha256sum "${WEB_ZIP_NAME}" > "${WEB_ZIP_NAME}.sha256"
-
-      - name: Upload Web Build Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ env.WEB_ZIP_NAME }}
-          path: |
-            ${{ env.WEB_ZIP_NAME }}
-            ${{ env.WEB_ZIP_NAME }}.sha256
-
-  # ========================================================
-  # JOB 2: PACKAGE & VERIFY FLASHABLE ROOT MODULE ZIP
   # ========================================================
   build-module:
-    name: Package & Verify Flashable Module ZIP
+    name: Build KernelSU WebUI Module ZIP
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Codebase
@@ -93,27 +53,20 @@ jobs:
           sudo apt-get update -qq
           sudo apt-get install -y -qq zip dos2unix shellcheck
 
-      - name: Prepare Staging Tree & Guarantee META-INF
+      - name: Prepare KernelSU WebUI Module Staging Tree
         run: |
-          mkdir -p staging/META-INF/com/google/android
-          mkdir -p staging/webroot
+          set -euo pipefail
+          test -s module.prop
+          test -s service.sh
+          test -s post-fs-data.sh
+          test -s customize.sh
+          test -s system.prop
+          test -s webroot/index.html
+          mkdir -p staging/META-INF/com/google/android staging/webroot
 
-          # 1. Guarantee META-INF binary & updater script
-          if [ -f "META-INF/com/google/android/update-binary" ]; then
-            cp META-INF/com/google/android/update-binary staging/META-INF/com/google/android/
-          else
-            cat << 'EOF' > staging/META-INF/com/google/android/update-binary
-#!/sbin/sh
-#MAGISK
-exec /data/adb/magisk/busybox ash "$0" "$@"
-EOF
-          fi
-
-          if [ -f "META-INF/com/google/android/updater-script" ]; then
-            cp META-INF/com/google/android/updater-script staging/META-INF/com/google/android/
-          else
-            echo '#MAGISK' > staging/META-INF/com/google/android/updater-script
-          fi
+          # 1. Keep the standard installer metadata for optional Magisk/APatch use.
+          cp META-INF/com/google/android/update-binary staging/META-INF/com/google/android/
+          cp META-INF/com/google/android/updater-script staging/META-INF/com/google/android/
 
           # 2. Copy core root module files
           cp module.prop staging/
@@ -157,27 +110,33 @@ EOF
           shellcheck -e SC2086,SC2181,SC2129 staging/customize.sh || true
           shellcheck -e SC2086,SC2181,SC2129 staging/action.sh || true
 
-      - name: Package Universal Flashable .ZIP
+      - name: Build KernelSU WebUI Module ZIP
         run: |
+          set -euo pipefail
           RAW_VERSION="${{ github.event.inputs.release_tag || github.ref_name || 'v4.5-ULTRA' }}"
-          SAFE_VERSION=$(echo "${RAW_VERSION}" | sed 's/[^a-zA-Z0-9._-]/_/g')
-          MODULE_ZIP_NAME="VirgoCore-BGMI-120FPS-iOS-Universal-${SAFE_VERSION}.zip"
-          echo "MODULE_ZIP_NAME=${MODULE_ZIP_NAME}" >> $GITHUB_ENV
-          cd staging
-          zip -r9 "../${MODULE_ZIP_NAME}" .
-          cd ..
-          echo "Module zip packaged successfully: ${MODULE_ZIP_NAME}"
+          SAFE_VERSION=$(printf '%s' "${RAW_VERSION}" | sed 's/[^a-zA-Z0-9._-]/_/g')
+          MODULE_ZIP_NAME="VirgoCore-KernelSU-WebUI-${SAFE_VERSION}.zip"
+          echo "MODULE_ZIP_NAME=${MODULE_ZIP_NAME}" >> "$GITHUB_ENV"
+          (cd staging && zip -r9 -X "../${MODULE_ZIP_NAME}" .)
+          echo "KernelSU WebUI module ZIP packaged successfully: ${MODULE_ZIP_NAME}"
 
-      - name: Verify Flashable Zip Integrity
+      - name: Verify KernelSU WebUI Module ZIP Integrity
         run: |
-          echo "Checking flashable zip internal layout..."
-          unzip -l "${MODULE_ZIP_NAME}"
-          # Verify mandatory Magisk / KernelSU / APatch structures
-          unzip -l "${MODULE_ZIP_NAME}" | grep -q "META-INF/com/google/android/update-binary" || (echo "ERROR: update-binary missing!" && exit 1)
-          unzip -l "${MODULE_ZIP_NAME}" | grep -q "module.prop" || (echo "ERROR: module.prop missing!" && exit 1)
-          unzip -l "${MODULE_ZIP_NAME}" | grep -q "service.sh" || (echo "ERROR: service.sh missing!" && exit 1)
-          unzip -l "${MODULE_ZIP_NAME}" | grep -q "webroot/index.html" || (echo "ERROR: webroot/index.html missing!" && exit 1)
-          echo "Integrity check passed 100%!"
+          set -euo pipefail
+          echo "Checking KernelSU WebUI module ZIP layout..."
+          unzip -t "${MODULE_ZIP_NAME}"
+          for required in \
+            META-INF/com/google/android/update-binary \
+            META-INF/com/google/android/updater-script \
+            module.prop service.sh post-fs-data.sh customize.sh system.prop \
+            webroot/index.html; do
+            unzip -l "${MODULE_ZIP_NAME}" | grep -Fq "${required}" || {
+              echo "ERROR: required module file missing: ${required}"
+              exit 1
+            }
+          done
+          test "$(unzip -p "${MODULE_ZIP_NAME}" module.prop | sed -n 's/^id=//p')" = "virgo-bgmi-core"
+          echo "KernelSU WebUI module ZIP integrity passed."
 
       - name: Generate Cryptographic Checksums (SHA-256 & MD5)
         run: |

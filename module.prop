@@ -4,4 +4,5 @@ version=v4.5-ULTRA
 versionCode=450
 author=VirgoYT
 description=Engineered by VirgoYT for Battlegrounds Mobile India (BGMI) & competitive FPS titles. Locks 120 FPS constant with iOS-grade touch curves & ProMotion frame pacing. Small Cores locked @ 2016MHz, Big Cores locked @ 2304MHz, GPU @ 900MHz, Performance Governors, Optimized Thermal Mitigation, TCP BBR, and Background Task Isolation. Includes KernelSU WebUI!
+banner=v.jpg
 action=true
