@@ -1,8 +1,8 @@
 id=virgo-bgmi-core
-name=Virgo Core - BGMI 120 FPS & iOS Smooth Esports Engine
-version=v4.5-ULTRA
-versionCode=450
+name=Virgo Core - G45 Stock Safe Game Tuner
+version=v4.6-G45-A17
+versionCode=460
 author=VirgoYT
-description=Engineered by VirgoYT for Battlegrounds Mobile India (BGMI) & competitive FPS titles. Locks 120 FPS constant with iOS-grade touch curves & ProMotion frame pacing. Small Cores locked @ 2016MHz, Big Cores locked @ 2304MHz, GPU @ 900MHz, Performance Governors, Optimized Thermal Mitigation, TCP BBR, and Background Task Isolation. Includes KernelSU WebUI!
+description=Motorola Moto G45 Android 17 stock-ROM-safe game tuner for BGMI and Free Fire. Protects the stock gyro HAL, thermal policy, Wi-Fi stack, and game processes while trimming background apps.
 banner=v.jpg
 action=true

@@ -14,13 +14,13 @@ on:
   workflow_dispatch:
     inputs:
       release_tag:
-        description: 'Release Tag (e.g. v4.5-ULTRA)'
+        description: 'Release Tag (e.g. v4.6-G45-A17)'
         required: true
-        default: 'v4.5-ULTRA'
+        default: 'v4.6-G45-A17'
       release_title:
         description: 'Release Title'
         required: true
-        default: 'Virgo Core // BGMI 120 FPS Constant Lock & iOS Fluidity'
+        default: 'Virgo Core // G45 Android 17 Stock-Safe Game Tuner'
       draft:
         description: 'Create Draft Release?'
         type: boolean
@@ -107,7 +107,7 @@ jobs:
       - name: Build KernelSU WebUI Module ZIP
         run: |
           set -euo pipefail
-          RAW_VERSION="${{ github.event.inputs.release_tag || github.ref_name || 'v4.5-ULTRA' }}"
+          RAW_VERSION="${{ github.event.inputs.release_tag || github.ref_name || 'v4.6-G45-A17' }}"
           SAFE_VERSION=$(printf '%s' "${RAW_VERSION}" | sed 's/[^a-zA-Z0-9._-]/_/g')
           MODULE_ZIP_NAME="VirgoCore-KernelSU-WebUI-${SAFE_VERSION}.zip"
           echo "MODULE_ZIP_NAME=${MODULE_ZIP_NAME}" >> "$GITHUB_ENV"
