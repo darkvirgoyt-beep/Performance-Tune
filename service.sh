@@ -11,6 +11,29 @@ LOCKFILE="/data/local/tmp/virgo-core-service.pid"
 log() { echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*" >> "$LOGFILE"; }
 write_node() { [ -e "$1" ] || return 1; printf '%s\n' "$2" > "$1" 2>/dev/null; }
 
+clear_legacy_properties() {
+  resetprop_bin=""
+  for candidate in /data/adb/magisk/resetprop /data/adb/ksu/bin/resetprop /data/adb/ap/bin/resetprop; do
+    [ -x "$candidate" ] && { resetprop_bin="$candidate"; break; }
+  done
+  [ -n "$resetprop_bin" ] || return 0
+  for prop in \
+    persist.vendor.sensors.gyro.odr \
+    persist.vendor.sensors.gyro.batch_limit \
+    persist.vendor.sensors.direct_channel \
+    vendor.sensor.gyro.delay \
+    persist.sys.thermal.mitigation \
+    persist.vendor.thermal.config \
+    persist.sys.cpu.governor \
+    persist.sys.gpu.governor \
+    persist.sys.gpu.max_clk \
+    net.tcp.buffersize.default \
+    net.tcp.buffersize.wifi; do
+    "$resetprop_bin" --delete "$prop" 2>/dev/null || true
+  done
+  log "Cleared legacy gyro, thermal, governor, and network properties"
+}
+
 # Avoid creating multiple watchdogs when KernelSU WebUI action is tapped.
 if [ -f "$LOCKFILE" ]; then
   old_pid=$(cat "$LOCKFILE" 2>/dev/null)
@@ -25,6 +48,7 @@ until [ "$(getprop sys.boot_completed 2>/dev/null)" = "1" ]; do sleep 2; done
 sleep 2
 
 [ -f "$CONF_FILE" ] && . "$CONF_FILE"
+clear_legacy_properties
 : "${ENABLE_GAME_TUNING:=1}"
 : "${ENABLE_MEMORY_TRIM:=1}"
 : "${ENABLE_NETWORK_TUNING:=0}"
